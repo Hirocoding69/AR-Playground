@@ -16,26 +16,36 @@
           height="1"
           rotation="-90 0 0"
           position="0 0 0"
-          autoplay="true"
-          loop="true"
+          loop
         ></a-video>
       </a-marker>
 
       <a-entity camera></a-entity>
 
       <a-assets>
-        <a-assets>
-          <video
-            id="demo-video"
-            src="assets/vid.mp4"
-            preload="auto"
-            playsinline
-            webkit-playsinline
-            muted
-            loop
-          ></video>
-        </a-assets>
+        <video
+          id="demo-video"
+          src="assets/vid.mp4"
+          preload="auto"
+          playsinline
+          webkit-playsinline
+          muted
+          loop
+        ></video>
       </a-assets>
     </a-scene>
+
+    <script>
+      const marker = document.querySelector("a-marker");
+      const video = document.querySelector("#demo-video");
+
+      marker.addEventListener("markerFound", () => {
+        if (video.paused) video.play();
+      });
+
+      marker.addEventListener("markerLost", () => {
+        video.pause();
+      });
+    </script>
   </body>
 </html>
