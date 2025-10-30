@@ -8,19 +8,23 @@
   </head>
 
   <body style="margin: 0; overflow: hidden">
-    <a-marker type="pattern" url="assets/500.patt">
-    <a-video
-      src="#demo-video"
-      width="2"
-      height="1"
-      rotation="-90 0 0"
-      position="0 0 0"
-      loop
-    ></a-video>
-  </a-marker>
+    <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
+      <!-- Marker -->
+      <a-marker type="pattern" url="assets/500.patt">
+        <a-video
+          src="#demo-video"
+          width="2"
+          height="1"
+          rotation="-90 0 0"
+          position="0 0 0"
+          loop
+        ></a-video>
+      </a-marker>
 
+      <!-- Camera -->
       <a-entity camera></a-entity>
 
+      <!-- Assets -->
       <a-assets>
         <video
           id="demo-video"
