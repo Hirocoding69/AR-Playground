@@ -2,29 +2,19 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AR.js Video on Marker</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@ar-js-org/ar.js@3.4.7/aframe/build/aframe-ar.min.js"></script>
   </head>
-
   <body style="margin: 0; overflow: hidden">
-    <a-scene embedded arjs="trackingMethod: best; sourceType: webcam;">
-      <!-- Marker -->
-      <a-marker type="pattern" url="assets/500.patt">
-        <a-video
-          src="#demo-video"
-          width="2"
-          height="1"
-          rotation="-90 0 0"
-          position="0 0 0"
-          loop
-        ></a-video>
-      </a-marker>
-
-      <!-- Camera -->
-      <a-entity camera></a-entity>
-
-      <!-- Assets -->
+    <a-scene
+      embedded
+      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
+      vr-mode-ui="enabled: false"
+      renderer="logarithmicDepthBuffer: true;"
+    >
+      <!-- Assets must be declared before use -->
       <a-assets>
         <video
           id="demo-video"
@@ -32,22 +22,44 @@
           preload="auto"
           playsinline
           webkit-playsinline
+          crossorigin="anonymous"
           muted
           loop
         ></video>
       </a-assets>
+
+      <!-- Marker -->
+      <a-marker type="pattern" url="assets/500.patt">
+        <a-plane
+          material="src: #demo-video; opacity: 1"
+          width="2"
+          height="1"
+          rotation="-90 0 0"
+          position="0 0 0"
+        ></a-plane>
+      </a-marker>
+
+      <!-- Camera -->
+      <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      const marker = document.querySelector("a-marker");
-      const video = document.querySelector("#demo-video");
+      // Wait for scene to load
+      document.querySelector("a-scene").addEventListener("loaded", function () {
+        const marker = document.querySelector("a-marker");
+        const video = document.querySelector("#demo-video");
 
-      marker.addEventListener("markerFound", () => {
-        if (video.paused) video.play();
-      });
+        if (marker && video) {
+          marker.addEventListener("markerFound", () => {
+            console.log("Marker found");
+            video.play().catch((err) => console.log("Play error:", err));
+          });
 
-      marker.addEventListener("markerLost", () => {
-        video.pause();
+          marker.addEventListener("markerLost", () => {
+            console.log("Marker lost");
+            video.pause();
+          });
+        }
       });
     </script>
   </body>
