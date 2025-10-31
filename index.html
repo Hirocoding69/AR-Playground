@@ -1,7 +1,11 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <!-- Use A-Frame 1.4.2 for MindAR compatibility -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MindAR Video Tracker</title>
+
+    <!-- Correct A-Frame and MindAR versions -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   </head>
@@ -26,35 +30,40 @@
         ></video>
       </a-assets>
 
-      <!-- MindAR camera (no need to add extra camera) -->
-
-      <!-- Image Target 0 -->
+      <!-- Image Target -->
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-plane
+        <a-video
           id="video-plane"
           src="#demo-video"
-          position="0 0 0"
-          rotation="0 0 0"
           width="2"
           height="1"
-        ></a-plane>
+          position="0 0 0"
+          rotation="0 0 0"
+        ></a-video>
       </a-entity>
+
+      <!-- MindAR Camera -->
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
     <script>
       const video = document.querySelector("#demo-video");
-
-      // MindAR automatically triggers these events
       const target = document.querySelector("[mindar-image-target]");
+      const sceneEl = document.querySelector("a-scene");
 
-      target.addEventListener("targetFound", () => {
-        console.log("Marker found");
-        video.play().catch((err) => console.error(err));
-      });
+      // Wait for MindAR to initialize
+      sceneEl.addEventListener("renderstart", () => {
+        // Play video when marker is detected
+        target.addEventListener("targetFound", () => {
+          console.log("Marker found");
+          video.play().catch((err) => console.error(err));
+        });
 
-      target.addEventListener("targetLost", () => {
-        console.log("Marker lost");
-        video.pause();
+        // Pause video when marker is lost
+        target.addEventListener("targetLost", () => {
+          console.log("Marker lost");
+          video.pause();
+        });
       });
     </script>
   </body>
