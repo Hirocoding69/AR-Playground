@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ARnft ZFT Video Tracker</title>
-    <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
-    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
+    <title>MindAR Video Tracker</title>
+
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden">
     <a-scene
+      mindar-image="imageTargetSrc: assets/targets.mind;"
+      color-space="sRGB"
       embedded
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
       vr-mode-ui="enabled: false"
       renderer="logarithmicDepthBuffer: true; precision: medium;"
     >
@@ -27,14 +29,8 @@
         ></video>
       </a-assets>
 
-      <a-nft
-        type="nft"
-        url="assets/500"
-        smooth="true"
-        smoothCount="10"
-        smoothTolerance=".01"
-        smoothThreshold="5"
-      >
+      <!-- Image Target 0 -->
+      <a-entity mindar-image-target="targetIndex: 0">
         <a-plane
           material="src: #demo-video; opacity: 1"
           width="2"
@@ -42,20 +38,25 @@
           rotation="-90 0 0"
           position="0 0 0"
         ></a-plane>
-      </a-nft>
+      </a-entity>
 
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      document.querySelector("a-scene").addEventListener("loaded", function () {
-        const nftMarker = document.querySelector("a-nft");
-        const video = document.querySelector("#demo-video");
-        nftMarker.addEventListener("markerFound", () => {
+      const video = document.querySelector("#demo-video");
+
+      document.querySelector("a-scene").addEventListener("loaded", () => {
+        const sceneEl = document.querySelector("a-scene");
+
+        // Play video when marker is detected
+        sceneEl.addEventListener("targetFound", () => {
           console.log("Marker found");
           video.play().catch((err) => console.error(err));
         });
-        nftMarker.addEventListener("markerLost", () => {
+
+        // Pause video when marker is lost
+        sceneEl.addEventListener("targetLost", () => {
           console.log("Marker lost");
           video.pause();
         });
