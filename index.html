@@ -3,36 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MindAR Optimized Video Tracking</title>
+    <title>MindAR Video Tracker</title>
 
-    <!-- Latest stable A-Frame + MindAR -->
+    <!-- Correct A-Frame and MindAR versions -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background: #000;
-      }
-    </style>
   </head>
-  <body>
+  <body style="margin: 0; overflow: hidden">
     <a-scene
-      mindar-image="
-        imageTargetSrc: assets/target.mind;
-        maxTrack: 1;
-        filterMinCF: 0.001;
-        filterBeta: 0.1;
-        missTolerance: 10;
-        warmupTolerance: 5;
-        uiScanning: false;
-      "
+      mindar-image="imageTargetSrc: assets/target.mind; uiScanning: false;"
       color-space="sRGB"
-      renderer="antialias: true; colorManagement: true; physicallyCorrectLights: true;"
+      renderer="colorManagement: true, physicallyCorrectLights"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: false"
-      embedded
     >
       <a-assets>
         <video
@@ -47,21 +30,20 @@
         ></video>
       </a-assets>
 
-      <!-- Tracking Target -->
+      <!-- Image Target -->
       <a-entity mindar-image-target="targetIndex: 0">
         <a-video
           id="video-plane"
           src="#demo-video"
           width="2"
-          height="1.125"
-          16:9
-          ratio
+          height="1"
           position="0 0 0"
           rotation="0 0 0"
         ></a-video>
       </a-entity>
 
-      <a-camera look-controls="enabled: false"></a-camera>
+      <!-- MindAR Camera -->
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
     </a-scene>
 
     <script>
@@ -69,50 +51,18 @@
       const target = document.querySelector("[mindar-image-target]");
       const sceneEl = document.querySelector("a-scene");
 
-      // ✅ Ensures video texture updates every frame (VERY IMPORTANT)
-      AFRAME.registerComponent("video-sync", {
-        tick() {
-          if (video.readyState >= 2 && !video.paused) {
-            video.play().catch(() => {});
-          }
-        },
-      });
-
-      document.querySelector("#video-plane").setAttribute("video-sync", "");
-
-      // ✅ Add autoplay fallback for mobile
-      const startVideoSafely = () => {
-        video.muted = true;
-        const playAttempt = video.play();
-        if (playAttempt) {
-          playAttempt.catch(() => {
-            console.warn("Autoplay blocked, waiting for user interaction");
-            const resume = () => {
-              video.play();
-              window.removeEventListener("touchstart", resume);
-              window.removeEventListener("click", resume);
-            };
-            window.addEventListener("touchstart", resume);
-            window.addEventListener("click", resume);
-          });
-        }
-      };
-
+      // Wait for MindAR to initialize
       sceneEl.addEventListener("renderstart", () => {
-        startVideoSafely();
-
-        // ✅ When marker is found
+        // Play video when marker is detected
         target.addEventListener("targetFound", () => {
-          console.log("✅ Marker found");
-          video.play().catch((err) => console.error("Play failed:", err));
+          console.log("Marker found");
+          video.play().catch((err) => console.error(err));
         });
 
-        // ✅ When marker is lost (use small delay to avoid flicker)
+        // Pause video when marker is lost
         target.addEventListener("targetLost", () => {
-          console.log("❌ Marker lost");
-          setTimeout(() => {
-            video.pause();
-          }, 150);
+          console.log("Marker lost");
+          video.pause();
         });
       });
     </script>
