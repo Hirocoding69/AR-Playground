@@ -3,19 +3,89 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MindAR Video Tracker</title>
-
-    <!-- Correct A-Frame and MindAR versions -->
+    <title>MindAR Video Tracker - Enhanced</title>
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      #loading-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        z-index: 9999;
+        transition: opacity 0.5s;
+      }
+      #loading-screen.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .spinner {
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top: 4px solid white;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin-bottom: 20px;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      #debug-info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 12px;
+        z-index: 1000;
+        display: none;
+      }
+      #debug-info.show {
+        display: block;
+      }
+    </style>
   </head>
-  <body style="margin: 0; overflow: hidden">
+  <body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+      <div class="spinner"></div>
+      <p>Initializing AR Camera...</p>
+    </div>
+
+    <!-- Debug Info -->
+    <div id="debug-info">
+      <div>Status: <span id="status">Initializing</span></div>
+      <div>Tracking: <span id="tracking">No</span></div>
+      <div>Confidence: <span id="confidence">0</span></div>
+    </div>
+
     <a-scene
-      mindar-image="imageTargetSrc: assets/target.mind; uiScanning: false;"
+      mindar-image="imageTargetSrc: assets/target.mind; filterMinCF: 0.0001; filterBeta: 0.001; warmupTolerance: 5; missTolerance: 5; uiScanning: false;"
       color-space="sRGB"
-      renderer="colorManagement: true, physicallyCorrectLights"
+      renderer="colorManagement: true, physicallyCorrectLights: true, antialias: true, alpha: true"
       vr-mode-ui="enabled: false"
       device-orientation-permission-ui="enabled: false"
+      embedded
     >
       <a-assets>
         <video
@@ -30,40 +100,192 @@
         ></video>
       </a-assets>
 
-      <!-- Image Target -->
-      <a-entity mindar-image-target="targetIndex: 0">
+      <!-- Image Target with improved positioning -->
+      <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
         <a-video
           id="video-plane"
           src="#demo-video"
           width="2"
-          height="1"
+          height="1.125"
           position="0 0 0"
           rotation="0 0 0"
+          material="shader: flat; transparent: true; opacity: 1"
         ></a-video>
       </a-entity>
 
-      <!-- MindAR Camera -->
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <!-- MindAR Camera with optimized settings -->
+      <a-camera
+        position="0 0 0"
+        look-controls="enabled: false"
+        cursor="rayOrigin: mouse"
+      ></a-camera>
     </a-scene>
 
     <script>
+      // Enhanced tracking script with optimizations
       const video = document.querySelector("#demo-video");
-      const target = document.querySelector("[mindar-image-target]");
+      const target = document.querySelector("#target-entity");
+      const videoPlane = document.querySelector("#video-plane");
       const sceneEl = document.querySelector("a-scene");
+      const loadingScreen = document.querySelector("#loading-screen");
+      const debugInfo = document.querySelector("#debug-info");
 
-      // Wait for MindAR to initialize
+      // Debug mode - set to true to see tracking info
+      const DEBUG_MODE = false;
+      if (DEBUG_MODE) {
+        debugInfo.classList.add("show");
+      }
+
+      // Tracking state management
+      let isTracking = false;
+      let trackingConfidence = 0;
+      let lastTrackTime = 0;
+      let videoReady = false;
+      let sceneReady = false;
+
+      // Smooth fade in/out for better UX
+      const fadeVideo = (fadeIn, duration = 300) => {
+        const startOpacity = fadeIn ? 0 : 1;
+        const endOpacity = fadeIn ? 1 : 0;
+        const startTime = performance.now();
+
+        const animate = (currentTime) => {
+          const elapsed = currentTime - startTime;
+          const progress = Math.min(elapsed / duration, 1);
+          const opacity = startOpacity + (endOpacity - startOpacity) * progress;
+
+          videoPlane.setAttribute("material", "opacity", opacity);
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          }
+        };
+
+        requestAnimationFrame(animate);
+      };
+
+      // Preload video
+      video.addEventListener("loadeddata", () => {
+        console.log("Video loaded and ready");
+        videoReady = true;
+        checkReady();
+      });
+
+      video.addEventListener("error", (e) => {
+        console.error("Video loading error:", e);
+        updateDebug("status", "Video Error");
+      });
+
+      // Initialize scene
+      sceneEl.addEventListener("loaded", () => {
+        console.log("A-Frame scene loaded");
+        sceneReady = true;
+        checkReady();
+      });
+
+      // Wait for MindAR to fully initialize
       sceneEl.addEventListener("renderstart", () => {
-        // Play video when marker is detected
-        target.addEventListener("targetFound", () => {
-          console.log("Marker found");
-          video.play().catch((err) => console.error(err));
+        console.log("MindAR rendering started");
+
+        // Hide loading screen after a short delay
+        setTimeout(() => {
+          loadingScreen.classList.add("hidden");
+          updateDebug("status", "Ready");
+        }, 1000);
+
+        // Target found handler with improvements
+        target.addEventListener("targetFound", (event) => {
+          console.log("✓ Marker detected");
+          isTracking = true;
+          lastTrackTime = Date.now();
+
+          updateDebug("tracking", "Yes");
+          updateDebug("status", "Tracking Active");
+
+          // Play video with fade in
+          if (video.paused) {
+            video
+              .play()
+              .then(() => {
+                console.log("Video playing");
+                fadeVideo(true, 200);
+              })
+              .catch((err) => {
+                console.error("Video play error:", err);
+                // Try playing without audio on iOS/mobile
+                video.muted = true;
+                video.play().catch((e) => console.error("Retry failed:", e));
+              });
+          }
         });
 
-        // Pause video when marker is lost
-        target.addEventListener("targetLost", () => {
-          console.log("Marker lost");
-          video.pause();
+        // Target lost handler with grace period
+        target.addEventListener("targetLost", (event) => {
+          console.log("✗ Marker lost");
+          isTracking = false;
+
+          updateDebug("tracking", "No");
+          updateDebug("status", "Searching...");
+
+          // Add a small delay before pausing to handle momentary occlusions
+          setTimeout(() => {
+            if (!isTracking && !video.paused) {
+              console.log("Pausing video after grace period");
+              fadeVideo(false, 200);
+              setTimeout(() => {
+                if (!isTracking) {
+                  video.pause();
+                }
+              }, 200);
+            }
+          }, 300);
         });
+      });
+
+      // Check if everything is ready
+      function checkReady() {
+        if (videoReady && sceneReady) {
+          console.log("✓ All resources ready");
+          updateDebug("status", "Initialized");
+        }
+      }
+
+      // Update debug information
+      function updateDebug(element, value) {
+        if (DEBUG_MODE) {
+          const el = document.querySelector(`#${element}`);
+          if (el) el.textContent = value;
+        }
+      }
+
+      // Performance monitoring (optional)
+      if (DEBUG_MODE) {
+        setInterval(() => {
+          const timeSinceTrack = Date.now() - lastTrackTime;
+          if (isTracking) {
+            updateDebug("confidence", "High");
+          } else if (timeSinceTrack < 1000) {
+            updateDebug("confidence", "Recent");
+          } else {
+            updateDebug("confidence", "None");
+          }
+        }, 100);
+      }
+
+      // Handle page visibility changes
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden && !video.paused) {
+          video.pause();
+          console.log("Page hidden - video paused");
+        }
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (video) {
+          video.pause();
+          video.src = "";
+        }
       });
     </script>
   </body>
