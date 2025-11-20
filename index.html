@@ -35,7 +35,7 @@
           id="video-plane"
           src="#demo-video"
           width="1"
-          height="1"
+          height="0.5625"
           position="0 0 0"
           rotation="0 0 0"
         ></a-video>
@@ -53,25 +53,48 @@
 
       // Adjust video size to fit the target while maintaining aspect ratio
       function adjustVideoSize() {
-        video.addEventListener(
-          "loadedmetadata",
-          () => {
+        const updateSize = () => {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
             const videoAspectRatio = video.videoWidth / video.videoHeight;
             const targetSize = 1; // MindAR default target size is 1 unit
 
+            console.log(
+              `Video dimensions: ${video.videoWidth}x${
+                video.videoHeight
+              }, aspect ratio: ${videoAspectRatio.toFixed(3)}`
+            );
+
             // Fit video within target bounds, maintaining aspect ratio
+            let width, height;
             if (videoAspectRatio > 1) {
-              // Landscape video
-              videoPlane.setAttribute("width", targetSize);
-              videoPlane.setAttribute("height", targetSize / videoAspectRatio);
+              // Landscape video (like 1920x1080 = 16:9)
+              width = targetSize;
+              height = targetSize / videoAspectRatio;
             } else {
               // Portrait or square video
-              videoPlane.setAttribute("width", targetSize * videoAspectRatio);
-              videoPlane.setAttribute("height", targetSize);
+              width = targetSize * videoAspectRatio;
+              height = targetSize;
             }
-          },
-          { once: true }
-        );
+
+            videoPlane.setAttribute("width", width);
+            videoPlane.setAttribute("height", height);
+            console.log(
+              `Set video plane to: ${width.toFixed(4)} x ${height.toFixed(4)}`
+            );
+          } else {
+            console.log("Video dimensions not available yet");
+          }
+        };
+
+        // Try immediately if dimensions are available
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          updateSize();
+        } else {
+          // Wait for metadata to load
+          video.addEventListener("loadedmetadata", updateSize, { once: true });
+          video.addEventListener("loadeddata", updateSize, { once: true });
+          video.addEventListener("canplay", updateSize, { once: true });
+        }
       }
 
       // Wait for MindAR to initialize
@@ -81,7 +104,35 @@
         // Play video when marker is detected
         target.addEventListener("targetFound", () => {
           console.log("Marker found");
-          video.play().catch((err) => console.error(err));
+          video
+            .play()
+            .then(() => {
+              // Update size again after video starts playing (dimensions might not be available until then)
+              setTimeout(() => {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                  const videoAspectRatio = video.videoWidth / video.videoHeight;
+                  const targetSize = 1;
+
+                  if (videoAspectRatio > 1) {
+                    videoPlane.setAttribute("width", targetSize);
+                    videoPlane.setAttribute(
+                      "height",
+                      targetSize / videoAspectRatio
+                    );
+                  } else {
+                    videoPlane.setAttribute(
+                      "width",
+                      targetSize * videoAspectRatio
+                    );
+                    videoPlane.setAttribute("height", targetSize);
+                  }
+                  console.log(
+                    `Updated video plane after play: ${video.videoWidth}x${video.videoHeight}`
+                  );
+                }
+              }, 100);
+            })
+            .catch((err) => console.error(err));
         });
 
         // Pause video when marker is lost
