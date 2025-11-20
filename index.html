@@ -25,7 +25,6 @@
           playsinline
           webkit-playsinline
           crossorigin="anonymous"
-          muted
           loop
         ></video>
       </a-assets>
@@ -35,7 +34,7 @@
         <a-video
           id="video-plane"
           src="#demo-video"
-          width="2"
+          width="1"
           height="1"
           position="0 0 0"
           rotation="0 0 0"
@@ -49,10 +48,36 @@
     <script>
       const video = document.querySelector("#demo-video");
       const target = document.querySelector("[mindar-image-target]");
+      const videoPlane = document.querySelector("#video-plane");
       const sceneEl = document.querySelector("a-scene");
+
+      // Adjust video size to fit the target while maintaining aspect ratio
+      function adjustVideoSize() {
+        video.addEventListener(
+          "loadedmetadata",
+          () => {
+            const videoAspectRatio = video.videoWidth / video.videoHeight;
+            const targetSize = 1; // MindAR default target size is 1 unit
+
+            // Fit video within target bounds, maintaining aspect ratio
+            if (videoAspectRatio > 1) {
+              // Landscape video
+              videoPlane.setAttribute("width", targetSize);
+              videoPlane.setAttribute("height", targetSize / videoAspectRatio);
+            } else {
+              // Portrait or square video
+              videoPlane.setAttribute("width", targetSize * videoAspectRatio);
+              videoPlane.setAttribute("height", targetSize);
+            }
+          },
+          { once: true }
+        );
+      }
 
       // Wait for MindAR to initialize
       sceneEl.addEventListener("renderstart", () => {
+        adjustVideoSize();
+
         // Play video when marker is detected
         target.addEventListener("targetFound", () => {
           console.log("Marker found");
