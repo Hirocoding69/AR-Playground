@@ -204,8 +204,38 @@
         }
       }
 
+      // Request higher quality camera
+      function requestHighQualityCamera() {
+        const mindARSystem = sceneEl.systems["mindar-image-system"];
+        if (mindARSystem && mindARSystem.video) {
+          const stream = mindARSystem.video.srcObject;
+          if (stream && stream.getVideoTracks().length > 0) {
+            const track = stream.getVideoTracks()[0];
+            const capabilities = track.getCapabilities();
+
+            const constraints = {
+              width: { ideal: 1920, max: capabilities.width?.max || 1920 },
+              height: { ideal: 1080, max: capabilities.height?.max || 1080 },
+              frameRate: { ideal: 60, max: capabilities.frameRate?.max || 60 },
+              facingMode: { ideal: "environment" },
+            };
+
+            track
+              .applyConstraints(constraints)
+              .then(() => {
+                console.log("Camera quality improved:", constraints);
+              })
+              .catch((err) => {
+                console.log("Could not apply camera constraints:", err);
+              });
+          }
+        }
+      }
+
       // Wait for MindAR to initialize
       sceneEl.addEventListener("renderstart", () => {
+        setTimeout(requestHighQualityCamera, 1000);
+
         adjustVideoSize();
 
         // Play video when marker is detected
