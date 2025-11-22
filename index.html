@@ -13,55 +13,62 @@
       device-orientation-permission-ui="enabled: false"
     >
       <a-assets>
-        <img
-          id="display-image"
-          src="assets/image.png"
+        <video
+          id="demo-video"
+          src="assets/vid.mp4"
+          preload="auto"
+          playsinline
+          webkit-playsinline
           crossorigin="anonymous"
-        />
+        ></video>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-image
-          src="#display-image"
+        <a-video
+          id="video-plane"
+          src="#demo-video"
           position="0 0 0"
           width="1"
-          height="1"
+          height="0.5625"
           rotation="0 0 0"
-        ></a-image>
+        ></a-video>
       </a-entity>
     </a-scene>
 
     <script>
-      const image = document.querySelector("#display-image");
-      const imagePlane = document.querySelector("a-image");
+      const video = document.querySelector("#demo-video");
+      const target = document.querySelector("[mindar-image-target]");
+      const videoPlane = document.querySelector("#video-plane");
       const sceneEl = document.querySelector("a-scene");
 
-      // Adjust image size to maintain aspect ratio
-      function adjustImageSize() {
+      // Adjust video size to maintain aspect ratio
+      function adjustVideoSize() {
         const updateSize = () => {
-          if (image.naturalWidth > 0 && image.naturalHeight > 0) {
-            const imageAspectRatio = image.naturalWidth / image.naturalHeight;
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            const videoAspectRatio = video.videoWidth / video.videoHeight;
             const targetSize = 1;
 
             let width, height;
-            if (imageAspectRatio > 1) {
+            if (videoAspectRatio > 1) {
               width = targetSize;
-              height = targetSize / imageAspectRatio;
+              height = targetSize / videoAspectRatio;
             } else {
-              width = targetSize * imageAspectRatio;
+              width = targetSize * videoAspectRatio;
               height = targetSize;
             }
 
-            imagePlane.setAttribute("width", width);
-            imagePlane.setAttribute("height", height);
+            videoPlane.setAttribute("width", width);
+            videoPlane.setAttribute("height", height);
           }
         };
 
-        if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
           updateSize();
         } else {
-          image.addEventListener("load", updateSize, { once: true });
+          video.addEventListener("loadedmetadata", updateSize, { once: true });
+          video.addEventListener("loadeddata", updateSize, { once: true });
+          video.addEventListener("canplay", updateSize, { once: true });
         }
       }
 
@@ -96,7 +103,44 @@
       // Initialize when scene is ready
       sceneEl.addEventListener("renderstart", () => {
         setTimeout(requestHighQualityCamera, 1000);
-        adjustImageSize();
+        adjustVideoSize();
+
+        // Play video when marker is detected
+        target.addEventListener("targetFound", () => {
+          console.log("Marker found");
+          video
+            .play()
+            .then(() => {
+              // Update size again after video starts playing
+              setTimeout(() => {
+                if (video.videoWidth > 0 && video.videoHeight > 0) {
+                  const videoAspectRatio = video.videoWidth / video.videoHeight;
+                  const targetSize = 1;
+
+                  if (videoAspectRatio > 1) {
+                    videoPlane.setAttribute("width", targetSize);
+                    videoPlane.setAttribute(
+                      "height",
+                      targetSize / videoAspectRatio
+                    );
+                  } else {
+                    videoPlane.setAttribute(
+                      "width",
+                      targetSize * videoAspectRatio
+                    );
+                    videoPlane.setAttribute("height", targetSize);
+                  }
+                }
+              }, 100);
+            })
+            .catch((err) => console.error("Video play error:", err));
+        });
+
+        // Pause video when marker is lost
+        target.addEventListener("targetLost", () => {
+          console.log("Marker lost");
+          video.pause();
+        });
       });
     </script>
   </body>
