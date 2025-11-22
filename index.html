@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MindAR Video Tracker</title>
+    <title>MindAR Image Tracker</title>
 
     <!-- Correct A-Frame and MindAR versions -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
@@ -106,26 +106,19 @@
       device-orientation-permission-ui="enabled: false"
     >
       <a-assets>
-        <video
-          id="demo-video"
-          src="assets/vid.mp4"
-          preload="auto"
-          playsinline
-          webkit-playsinline
-          crossorigin="anonymous"
-        ></video>
+        <img id="demo-image" src="assets/image.png" crossorigin="anonymous" />
       </a-assets>
 
       <!-- Image Target -->
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-video
-          id="video-plane"
-          src="#demo-video"
+        <a-image
+          id="image-plane"
+          src="#demo-image"
           width="1"
-          height="0.5625"
+          height="1"
           position="0 0 0"
           rotation="0 0 0"
-        ></a-video>
+        ></a-image>
       </a-entity>
 
       <!-- MindAR Camera -->
@@ -153,58 +146,45 @@
     </div>
 
     <script>
-      const video = document.querySelector("#demo-video");
       const target = document.querySelector("[mindar-image-target]");
-      const videoPlane = document.querySelector("#video-plane");
+      const imagePlane = document.querySelector("#image-plane");
       const sceneEl = document.querySelector("a-scene");
+      const image = document.querySelector("#demo-image");
 
-      // Adjust video size to fit the target while maintaining aspect ratio
-      function adjustVideoSize() {
+      // Adjust image size to fit the target while maintaining aspect ratio
+      function adjustImageSize() {
         const updateSize = () => {
-          if (video.videoWidth > 0 && video.videoHeight > 0) {
-            const videoAspectRatio = video.videoWidth / video.videoHeight;
+          if (image.naturalWidth > 0 && image.naturalHeight > 0) {
+            const imageAspectRatio = image.naturalWidth / image.naturalHeight;
             const targetSize = 1; // MindAR default target size is 1 unit
 
-            console.log(
-              `Video dimensions: ${video.videoWidth}x${
-                video.videoHeight
-              }, aspect ratio: ${videoAspectRatio.toFixed(3)}`
-            );
-
-            // Fit video within target bounds, maintaining aspect ratio
+            // Fit image within target bounds, maintaining aspect ratio
             let width, height;
-            if (videoAspectRatio > 1) {
-              // Landscape video (like 1920x1080 = 16:9)
+            if (imageAspectRatio > 1) {
+              // Landscape image
               width = targetSize;
-              height = targetSize / videoAspectRatio;
+              height = targetSize / imageAspectRatio;
             } else {
-              // Portrait or square video
-              width = targetSize * videoAspectRatio;
+              // Portrait or square image
+              width = targetSize * imageAspectRatio;
               height = targetSize;
             }
 
-            videoPlane.setAttribute("width", width);
-            videoPlane.setAttribute("height", height);
-            console.log(
-              `Set video plane to: ${width.toFixed(4)} x ${height.toFixed(4)}`
-            );
-          } else {
-            console.log("Video dimensions not available yet");
+            imagePlane.setAttribute("width", width);
+            imagePlane.setAttribute("height", height);
           }
         };
 
         // Try immediately if dimensions are available
-        if (video.videoWidth > 0 && video.videoHeight > 0) {
+        if (image.naturalWidth > 0 && image.naturalHeight > 0) {
           updateSize();
         } else {
-          // Wait for metadata to load
-          video.addEventListener("loadedmetadata", updateSize, { once: true });
-          video.addEventListener("loadeddata", updateSize, { once: true });
-          video.addEventListener("canplay", updateSize, { once: true });
+          // Wait for image to load
+          image.addEventListener("load", updateSize, { once: true });
         }
       }
 
-      // Request higher quality camera
+      // Request higher quality camera for better tracking
       function requestHighQualityCamera() {
         const mindARSystem = sceneEl.systems["mindar-image-system"];
         if (mindARSystem && mindARSystem.video) {
@@ -235,53 +215,15 @@
       // Wait for MindAR to initialize
       sceneEl.addEventListener("renderstart", () => {
         setTimeout(requestHighQualityCamera, 1000);
+        adjustImageSize();
 
-        adjustVideoSize();
-
-        // Play video when marker is detected
+        // Show modal when marker is detected (optional - you can remove this if not needed)
         target.addEventListener("targetFound", () => {
           console.log("Marker found");
-          video
-            .play()
-            .then(() => {
-              // Update size again after video starts playing (dimensions might not be available until then)
-              setTimeout(() => {
-                if (video.videoWidth > 0 && video.videoHeight > 0) {
-                  const videoAspectRatio = video.videoWidth / video.videoHeight;
-                  const targetSize = 1;
-
-                  if (videoAspectRatio > 1) {
-                    videoPlane.setAttribute("width", targetSize);
-                    videoPlane.setAttribute(
-                      "height",
-                      targetSize / videoAspectRatio
-                    );
-                  } else {
-                    videoPlane.setAttribute(
-                      "width",
-                      targetSize * videoAspectRatio
-                    );
-                    videoPlane.setAttribute("height", targetSize);
-                  }
-                  console.log(
-                    `Updated video plane after play: ${video.videoWidth}x${video.videoHeight}`
-                  );
-                }
-              }, 100);
-            })
-            .catch((err) => console.error(err));
         });
 
-        // Pause video when marker is lost
         target.addEventListener("targetLost", () => {
           console.log("Marker lost");
-          video.pause();
-        });
-
-        // Show modal when video ends
-        video.addEventListener("ended", () => {
-          console.log("Video ended");
-          showPhoneModal();
         });
       });
 
