@@ -1,234 +1,69 @@
-<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width,user-scalable=no,minimal-ui"
-    />
-    <title>MindAR Dual Image Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+          "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { MindARThree } from "mindar-image-three";
+
+      const mindarThree = new MindARThree({
+        container: document.querySelector("#container"),
+        imageTargetSrc: "/assets/target.mind",
+      });
+
+      const { renderer, scene, camera } = mindarThree;
+      const anchor = mindarThree.addAnchor(0);
+
+      // Create a plane to hold the video
+      const geometry = new THREE.PlaneGeometry(1, 0.55); // size of the plane
+      const video = document.createElement("video");
+      video.src = "https://www.w3schools.com/html/mov_bbb.mp4"; // replace with your video URL
+      video.setAttribute("autoplay", "");
+      video.setAttribute("loop", "");
+      video.setAttribute("muted", ""); // Mute the video by default (if needed)
+
+      // Create a texture from the video
+      const texture = new THREE.VideoTexture(video);
+      const material = new THREE.MeshBasicMaterial({
+        map: texture,
+        side: THREE.DoubleSide,
+      });
+
+      const plane = new THREE.Mesh(geometry, material);
+      anchor.group.add(plane);
+
+      // Start the AR experience when the image is detected
+      const start = async () => {
+        await mindarThree.start();
+        renderer.setAnimationLoop(() => {
+          renderer.render(scene, camera);
+        });
+      };
+
+      // Start the AR experience automatically
+      start();
+    </script>
     <style>
       body {
         margin: 0;
-        overflow: hidden;
-        font-family: Arial, sans-serif;
       }
       #container {
         width: 100vw;
         height: 100vh;
         position: relative;
-      }
-      #loading {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        text-align: center;
-        color: white;
-        z-index: 100;
-        background: rgba(0, 0, 0, 0.7);
-        padding: 20px;
-        border-radius: 10px;
-      }
-      #loading.hidden {
-        display: none;
+        overflow: hidden;
       }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
   </head>
   <body>
-    <div id="loading">Loading AR Experience...</div>
     <div id="container"></div>
-
-    <script>
-      // Wait for MindAR library to load
-      function initAR() {
-        if (!window.MINDAR || !window.MINDAR.IMAGE) {
-          // Retry after a short delay
-          setTimeout(initAR, 100);
-          return;
-        }
-
-        const THREE = window.MINDAR.IMAGE.THREE;
-
-        // Initialize MindAR with two targets
-        const mindarThree = new window.MINDAR.IMAGE.MindARThree({
-          container: document.querySelector("#container"),
-          imageTargetSrc: "assets/target.mind",
-        });
-
-        const { renderer, scene, camera } = mindarThree;
-
-        // Create video element (shared by both trackers)
-        const video = document.createElement("video");
-        video.src = "assets/vid.mp4";
-        video.loop = true;
-        video.muted = true;
-        video.playsInline = true;
-        video.setAttribute("playsinline", "");
-        video.setAttribute("webkit-playsinline", "");
-        video.crossOrigin = "anonymous";
-
-        // Create video texture
-        const videoTexture = new THREE.VideoTexture(video);
-        videoTexture.minFilter = THREE.LinearFilter;
-        videoTexture.magFilter = THREE.LinearFilter;
-
-        // Create material for video plane
-        const planeMaterial = new THREE.MeshBasicMaterial({
-          map: videoTexture,
-          transparent: true,
-          side: THREE.DoubleSide,
-        });
-
-        // Function to create video plane with proper aspect ratio
-        function createVideoPlane() {
-          return new Promise((resolve) => {
-            const createPlane = () => {
-              const videoWidth = video.videoWidth || 1920;
-              const videoHeight = video.videoHeight || 1080;
-              const videoAspectRatio = videoWidth / videoHeight;
-
-              let planeWidth = 1.0;
-              let planeHeight = 1.0;
-
-              if (videoAspectRatio > 1) {
-                planeWidth = 1.0;
-                planeHeight = 1.0 / videoAspectRatio;
-              } else {
-                planeWidth = 1.0 * videoAspectRatio;
-                planeHeight = 1.0;
-              }
-
-              const planeGeometry = new THREE.PlaneGeometry(
-                planeWidth,
-                planeHeight
-              );
-              const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-              plane.position.set(0, 0, 0);
-
-              resolve(plane);
-            };
-
-            if (video.readyState >= 2) {
-              createPlane();
-            } else {
-              video.addEventListener("loadedmetadata", createPlane, {
-                once: true,
-              });
-            }
-          });
-        }
-
-        // Create anchor groups for each target
-        const anchor1 = mindarThree.addAnchor(0); // First target
-        const anchor2 = mindarThree.addAnchor(1); // Second target (if you have 2 targets in your .mind file)
-
-        // Track which anchor currently has the video plane
-        let videoPlane = null;
-        let currentAnchor = null;
-        let tracker1Visible = false;
-        let tracker2Visible = false;
-
-        // Create the video plane
-        createVideoPlane().then((plane) => {
-          videoPlane = plane;
-        });
-
-        // Target detection events for anchor 1
-        anchor1.onTargetFound = () => {
-          tracker1Visible = true;
-        };
-
-        anchor1.onTargetLost = () => {
-          tracker1Visible = false;
-        };
-
-        // Target detection events for anchor 2
-        anchor2.onTargetFound = () => {
-          tracker2Visible = true;
-        };
-
-        anchor2.onTargetLost = () => {
-          tracker2Visible = false;
-        };
-
-        // Start MindAR
-        const start = async () => {
-          document.querySelector("#loading").classList.remove("hidden");
-
-          await mindarThree.start();
-
-          document.querySelector("#loading").classList.add("hidden");
-
-          // Start video playback
-          video.play().catch((error) => {
-            console.error("Error playing video:", error);
-          });
-
-          // Render loop
-          renderer.setAnimationLoop(() => {
-            if (videoPlane) {
-              // Priority: tracker1 first, then tracker2
-              // Only ONE tracker can be active at a time
-              if (tracker1Visible) {
-                // Tracker1 detected - show video on tracker1
-                if (currentAnchor !== anchor1) {
-                  if (currentAnchor) {
-                    currentAnchor.group.remove(videoPlane);
-                  }
-                  anchor1.group.add(videoPlane);
-                  currentAnchor = anchor1;
-                }
-
-                // Play video when target is detected
-                if (video.paused) {
-                  video.play().catch((error) => {
-                    console.error("Error playing video:", error);
-                  });
-                }
-              } else if (tracker2Visible) {
-                // Tracker2 detected (and tracker1 is not) - show video on tracker2
-                if (currentAnchor !== anchor2) {
-                  if (currentAnchor) {
-                    currentAnchor.group.remove(videoPlane);
-                  }
-                  anchor2.group.add(videoPlane);
-                  currentAnchor = anchor2;
-                }
-
-                // Play video when target is detected
-                if (video.paused) {
-                  video.play().catch((error) => {
-                    console.error("Error playing video:", error);
-                  });
-                }
-              } else {
-                // Neither visible - pause video and remove visual
-                if (!video.paused) {
-                  video.pause();
-                }
-
-                if (currentAnchor) {
-                  currentAnchor.group.remove(videoPlane);
-                  currentAnchor = null;
-                }
-              }
-            }
-
-            renderer.render(scene, camera);
-          });
-        };
-
-        start();
-      }
-
-      // Start initialization
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initAR);
-      } else {
-        initAR();
-      }
-    </script>
   </body>
 </html>
