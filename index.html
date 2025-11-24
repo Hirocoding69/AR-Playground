@@ -34,18 +34,20 @@
         display: none;
       }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-three.prod.js"></script>
+    <script
+      async
+      src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
+    ></script>
   </head>
   <body>
     <div id="loading">Loading AR Experience...</div>
     <div id="container"></div>
 
     <script>
-      // Wait for MindAR to load
-      function initAR() {
-        if (!window.MINDAR || !window.MINDAR.IMAGE) {
-          // Retry after a short delay
-          setTimeout(initAR, 100);
+      // Wait for MindAR library to load
+      window.addEventListener("load", () => {
+        if (!window.MINDAR) {
+          console.error("MindAR library not loaded");
           return;
         }
 
@@ -54,14 +56,16 @@
         // Initialize MindAR with two targets
         const mindarThree = new window.MINDAR.IMAGE.MindARThree({
           container: document.querySelector("#container"),
-          imageTargetSrc: "assets/target.mind",
+          imageTargetSrc:
+            "https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/examples/image-tracking/assets/card-example/card.mind", // You need to replace this with your compiled .mind file
         });
 
         const { renderer, scene, camera } = mindarThree;
 
         // Create video element (shared by both trackers)
         const video = document.createElement("video");
-        video.src = "assets/vid.mp4";
+        video.src =
+          "https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/examples/image-tracking/assets/video/video.mp4"; // Replace with your video
         video.loop = true;
         video.muted = true;
         video.playsInline = true;
@@ -221,14 +225,7 @@
         };
 
         start();
-      }
-
-      // Start initialization when page loads
-      if (document.readyState === "loading") {
-        document.addEventListener("DOMContentLoaded", initAR);
-      } else {
-        initAR();
-      }
+      });
     </script>
   </body>
 </html>
