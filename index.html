@@ -1,69 +1,17 @@
 <html>
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-          "mindar-image-three": "https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"
-        }
-      }
-    </script>
-    <script type="module">
-      import * as THREE from "three";
-      import { MindARThree } from "mindar-image-three";
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+		<script src="index.01dc33.js" type="module" async=""></script>
 
-      const mindarThree = new MindARThree({
-        container: document.querySelector("#container"),
-        imageTargetSrc: "/assets/target.mind",
-      });
-
-      const { renderer, scene, camera } = mindarThree;
-      const anchor = mindarThree.addAnchor(0);
-
-      // Create a plane to hold the video
-      const geometry = new THREE.PlaneGeometry(1, 0.55); // size of the plane
-      const video = document.createElement("video");
-      video.src = "https://www.w3schools.com/html/mov_bbb.mp4"; // replace with your video URL
-      video.setAttribute("autoplay", "");
-      video.setAttribute("loop", "");
-      video.setAttribute("muted", ""); // Mute the video by default (if needed)
-
-      // Create a texture from the video
-      const texture = new THREE.VideoTexture(video);
-      const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.DoubleSide,
-      });
-
-      const plane = new THREE.Mesh(geometry, material);
-      anchor.group.add(plane);
-
-      // Start the AR experience when the image is detected
-      const start = async () => {
-        await mindarThree.start();
-        renderer.setAnimationLoop(() => {
-          renderer.render(scene, camera);
-        });
-      };
-
-      // Start the AR experience automatically
-      start();
-    </script>
-    <style>
-      body {
-        margin: 0;
-      }
-      #container {
-        width: 100vw;
-        height: 100vh;
-        position: relative;
-        overflow: hidden;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="container"></div>
-  </body>
+		<style>body,html{padding:0;margin:0;font-family:sans-serif;height:100vh;width:100vw;touch-action:pan-x pan-y;}.splash{background-color:rgb(31, 32, 33);position:fixed;width:100%;height:100%;z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}.splash-box{width:304px;max-width:90%;background:rgba(31, 32, 33, 0.78);border-radius:8px;padding:50px 20px 50px 20px;box-sizing:border-box;}.splash-box > h1{font-size:34px;font-weight:700;padding:0;margin:0;color:white;}.splash-highlight{color:#6ae5e0;}.zcomponent-launched .splash{display:none;}#launchButton{background:linear-gradient(94deg, #6be5ad 0%, #53afe4 100.05%);border-radius:8px;border:none;padding:11px 23px;font-size:20px;margin-top:30px;line-height:24px;height:48px;color:black;}#launchButton:disabled{background:none;background-color:none;width:48px;visibility:hidden;padding:0px;}#launchButton:disabled:before{content:' ';visibility:visible;display:block;width:48px;height:48px;margin:0px;border-radius:50%;box-sizing:border-box;border:5px solid #fff;border-color:#fff transparent #fff transparent;animation:loading-animation 1.2s linear infinite;}@keyframes loading-animation{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>
+	</head>
+	<body>
+		<div class="splash">
+			<div class="splash-box">
+				<h1>An <span class="splash-highlight">immersive</span> web experience</h1>
+				<button id="launchButton" disabled="">Launch</button>
+			</div>
+		</div>
+	</body>
 </html>
